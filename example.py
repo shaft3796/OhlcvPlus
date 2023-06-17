@@ -1,52 +1,54 @@
-# Import OHLCV+
-from ohlcv import OhlcvPlus
-# Import CCXT
+# Import OHLCV+, this is the main class.
+from ohlcv.ohlcv import OhlcvPlus
+# Import ccxt.
 import ccxt
 
-# To make ohlcv+ working, you have to provide a ccxt instanced client, if you already have one, skip this step.
-client = ccxt.binance()  # Replace binance by any exchange supported by CCXT
+"""
+We create first our ccxt client, more info at https://github.com/ccxt/ccxt.
+While ccxt allows to use a lot of exchanges, it's important to keep in mind that some may have some unexpected 
+behavior.
+"""
+client = ccxt.binance()
 
-# OHLCV+ engine instanciation
-ohlcv_engine = OhlcvPlus(client)  # Provide your ccxt instanced client
+"""
+We create our OhlcvPlus instance.
+The first parameter is the ccxt client instanced above.
+The second parameter is optional, OhlcvPlus achieve data persistence through an sqlite database, 
+the whole database is stored in a file, this parameter is the path to that file, if the file doesn't exist it will be
+created. You can pass None to this parameter do disable data persistence.
+"""
+ohlcvp = OhlcvPlus(client, database_path='my_data.db')
 
-# As mentionned in the feature section, everything is does by using one method: OhlcvPlus.load_ohlcv(...).
-# Let's understand how this method works:
-#
-# First case, path parameter is unfilled (default value is data/) or is filled with a path
-# If a file exists with your data, the manager will load it,
-# if there's new candles targeted by the time range you set, the manager will update your data
-# If there is no file with your data, the manager will download your data and save it as a CSV file
-#
-# Second case, path parameter is filled with None
-# The manager will just download the data from the exchange
-#
-# Now let's see others parameters:
-#
-# - market: a string with the market you want to download the data from e.g. "BTC/USDT" - timeframe: timeframe of
-# your ohlcv, usually '1y', '1m', '1d', '1w', '1h', '5M'.. depending of the exchange used - since: the date of the
-# first candle of your OHLCV as a string with this format: "day-month-year hours:minuts:seconds" e.g: 17/10/2022
-# "22:39:41"
-# - limit: the number of candles to download, if you pass -1 the manager will download as many candles as
-# possible Optionals parameters: - output: True to display information for example the progress bar, False else.
-# - max_workers: number of requests sheduled at the same time, increase this parameter may cause some issues ! Decrease
-# this parameter will make the download slower, but you can do it if you encounter some issues. - path: Path of the
-# directory where you want your data to be located, pass None to disable the filesystem
-#
-# This method returns a pandas dataframe indexed from 0 to n (your number of candles minus one)
-# The pandas dataframe has these columns: 'timestamp' | 'open' | 'high' | 'low' | 'close' | 'volume'
+"""
+We are now able to download our first dataframe. The OhlcvPlus class features a download method, but we recommend to 
+only use the load method, which is a wrapper around the download method, but with some extra features.
+When called for the first time, this method will download the ohlcv, create a field in the database, save it (if the 
+database is enabled) and return the dataframe. When called again, the ohlcv will be directly loaded from the database 
+and updated with new candles if needed.
+The first parameter is the market, e.g 'BTC/USDT'. This parameter is directly passed to CCXT, if you encounter any
+error, please refer to the CCXT documentation.
+The second parameter is the timeframe, e.g '1m'. This parameter is directly passed to CCXT, if you encounter any
+error, please refer to the CCXT documentation.
+The third parameter is the date from which you want to download the ohlcv, e.g '2021-01-01 00:00:00'. If no data is 
+available for this date, an error will be raised.
+The fourth parameter is the limit, this parameter is used to limit the number of candles downloaded. The first possible 
+value is an integer indicating the number of candles to download, e.g 1000. The second possible value is a date, e.g
+'2021-01-01 00:00:00', in this case, the download will stop when the date is reached. The third possible value is -1,
+in this case, the download will stop when there is no more data available.
+The fifth parameter is the update parameter, if set to True, the ohlcv will be updated with latest candles when it is 
+loaded from the database, this is useful to easily keep up to date data. If you set this parameter to True but the 
+limit parameter is set to a date or an integer other than -1, the data will still be updated and saved but the dataframe 
+will be returned according to the limit parameter.
+The sixth parameter is the verbose parameter, if set to True, the download progress will be displayed.
+The seventh parameter is the workers parameter, use this parameter with caution, refer to the download method docstring
+For more information about the download method, refer to the download method docstring
+"""
+# Download 1000 candles from 2023-01-01 00:00:00 to 2023-02-01 00:00:00.
+ohlcv1 = ohlcvp.load(market='BTC/USDT', timeframe='1m', since='2023-01-01 00:00:00', limit=1000, update=True, verbose=True, workers=100)
+# Download all candles from 2023-01-01 00:00:00 to 2023-02-01 00:00:00.
+ohlcv2 = ohlcvp.load(market='BTC/USDT', timeframe='1m', since='2023-01-01 00:00:00', limit='2023-02-01 00:00:00', update=True, verbose=True, workers=100)
+# Download all candles from 2023-01-01 00:00:00 to now.
+ohlcv3 = ohlcvp.load(market='BTC/USDT', timeframe='1m', since='2023-01-01 00:00:00', limit=-1, update=True, verbose=True, workers=100)
 
-# Let's see an example
-
-# We use FTX
-client = ccxt.ftx()
-ohlcv_engine = OhlcvPlus(client)
-
-# We download OHLCV of BTC/USD with one candle every one day from 01/01/2020 00:00:00, and we download as many candles
-# as possible, we save the data in a file in ohlcv/ directory
-data = ohlcv_engine.load_ohlcv("BTC/USD", "1m", "01/01/2020 00:00:00", -1, output=True, path="ohlcv/")
-print(data)
-
-# The manager found a file with our data, it loads it and update it with new candles, this was faster than the previous
-# method
-data = ohlcv_engine.load_ohlcv("BTC/USD", "1m", "01/01/2020 00:00:00", -1, output=True, path="ohlcv/")
-print(data)
+# Same as the first request, but this one the ohlcv will be loaded and updated from the database.
+ohlcv4 = ohlcvp.load(market='BTC/USDT', timeframe='1m', since='2023-01-01 00:00:00', limit=1000, update=True, verbose=True, workers=100)

@@ -1,0 +1,4 @@
+ccxt
+colorama
+pandas
+SQLAlchemy
