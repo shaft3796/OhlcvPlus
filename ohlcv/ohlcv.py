@@ -180,9 +180,8 @@ class OhlcvPlus:
         if verbose:
             print(Fore.CYAN, f"Aggregating {len(requests)} dataframe for a total of {limit} candles. This might take "
                              f"some time.", Fore.RESET)
-        df = pd.concat([responses[i][0] for i in range(len(requests))], ignore_index=True)
+        df = pd.concat([responses[i][0] for i in range(len(requests))], ignore_index=True).iloc[:-1].iloc[:limit]
         df = df.drop_duplicates(subset=['timestamp'])
-        df = df.iloc[:limit]
         df = df.reset_index(drop=True)
         return df
 
@@ -205,7 +204,10 @@ class OhlcvPlus:
             new_data = self.download(market, timeframe, since, limit, verbose, workers)
         except NotEnoughDataException:
             return dataframe
-        return pd.concat([dataframe, new_data], ignore_index=True)
+        df = pd.concat([dataframe, new_data], ignore_index=True)
+        df = df.drop_duplicates(subset=['timestamp'])
+        df = df.reset_index(drop=True)
+        return df
 
     def load(self, market: str, timeframe: str, since: str, limit: (int, str), update: bool = False,
              verbose: bool = True, workers: int = 100):
