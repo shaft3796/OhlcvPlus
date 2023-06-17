@@ -37,8 +37,8 @@ To see how it works, just look at the example.py file.
 The code is also commented, you can easily take a look at the methods docstrings.
 
 ```python
-#Import OHLCV+, this is the main class.
-#Import ccxt.
+from ohlcv import OhlcvPlus
+import ccxt.
 
 client = ccxt.binance()
 ohlcvp = OhlcvPlus(client, database_path='my_data.db')
