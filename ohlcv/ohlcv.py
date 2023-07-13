@@ -183,6 +183,20 @@ class OhlcvPlus:
         df = pd.concat([responses[i][0] for i in range(len(requests))], ignore_index=True).iloc[:-1].iloc[:limit]
         df = df.drop_duplicates(subset=['timestamp'])
         df = df.reset_index(drop=True)
+        if verbose:
+            print(Fore.CYAN, f"Verifying data integrity.", Fore.RESET)
+        ic = 0
+        for i in range(1, len(df)):
+            if df['timestamp'].iloc[i] - df['timestamp'].iloc[i - 1] != tf:
+                # Check the number of missing candles
+                missing = int((df['timestamp'].iloc[i] - df['timestamp'].iloc[i - 1]) / tf)
+                ic += missing
+
+        if ic > 0 and verbose:
+            msg = f"WARNING: Integrity check failed:\n  {ic} candles were detected as missing, this is most likely " \
+                  f"not a download issue but rather an exchange issue, some exchanges do not provide data for " \
+                  f"downtimes or other reasons."
+            print(Fore.YELLOW, msg, Fore.RESET)
         return df
 
     def update(self, dataframe: pd.DataFrame, market: str, timeframe: str, verbose: bool = True, workers: int = 100):
