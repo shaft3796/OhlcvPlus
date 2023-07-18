@@ -44,3 +44,10 @@ client = ccxt.binance()
 ohlcvp = OhlcvPlus(client, database_path='my_data.db')
 ohlcv1 = ohlcvp.load(market='BTC/USDT', timeframe='1m', since='2023-01-01 00:00:00', limit=1000, update=True, verbose=True, workers=100)
 ```
+## V3 Planning
+
+OhlcvPlus V3 developpment will start with a lot of new features !
+
+- Data aggregator: The v3 will features a data aggregator, the same data will be downloaded from all major ccxt compatible exchanges and then aggregated and averaged depending on the volume. This will give high-quality dataframes with no missing values.
+  
+- Enhanced storage: A completly new storage system with the vault module, will support a lot of databases through SqlAlchemy and gives a more flexible storage.
